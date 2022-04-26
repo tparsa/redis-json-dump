@@ -33,7 +33,11 @@ class RedisDumper:
         return self.r.smembers(key)
     
     def _get_zset(self, key):
-        return self.r.zrange(key, 0, -1)
+        zset = self.r.zrange(key, 0, -1, withscores=True)
+        ret = []
+        for entry in zset:
+            ret += list(entry)
+        return ret
 
     def _get_value(self, key):
         return getattr(self, f"_get_{self.key_type(key)}")(key)
@@ -46,7 +50,9 @@ class RedisDumper:
                     dump += ",\n"
                 else:
                     self._first_dump_line = False
-                dump += f'\t"{key}": {self._get_value(key)}'.replace("'", '"')
+                value = self._get_value(key)
+                value = str(value).replace('"', "'")
+                dump += f'\t"{key}": '.replace("'", '"') + f'["{value}", "{self.key_type(key)}"]'
             dump_file.write(dump)
 
     def dump_with_pattern(self, pattern):
