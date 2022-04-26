@@ -36,7 +36,6 @@ class RedisDumper:
         return self.r.zrange(key, 0, -1)
 
     def _get_value(self, key):
-        print(key, self.key_type(key))
         return getattr(self, f"_get_{self.key_type(key)}")(key)
 
     def dump_keys(self, keys):
