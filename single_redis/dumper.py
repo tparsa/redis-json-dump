@@ -30,7 +30,9 @@ class RedisDumper:
         return self.r.hgetall(key)
     
     def _get_set(self, key):
-        return self.r.smembers(key)
+        if self.r.exists(key):
+            return list(self.r.smembers(key))
+        return None
     
     def _get_zset(self, key):
         zset = self.r.zrange(key, 0, -1, withscores=True)
@@ -51,8 +53,7 @@ class RedisDumper:
                 else:
                     self._first_dump_line = False
                 value = self._get_value(key)
-                value = str(value).replace('"', "'")
-                dump += f'\t"{key}": '.replace("'", '"') + f'["{value}", "{self.key_type(key)}"]'
+                dump += f'\t"{key}": '.replace("'", '"') + "{" + f'"value": {json.dumps(value)}, "type": "{self.key_type(key)}"' + "}"
             dump_file.write(dump)
 
     def dump_with_pattern(self, pattern):

@@ -15,7 +15,7 @@ class RedisPumper:
     def _pump_list(self, key, value):
         value = json.loads(value.replace("'", '"'))
         self.r.delete(key)
-        self.r.lpush(key, *value)
+        self.r.rpush(key, *value)
 
     def _pump_hash(self, key, value):
         value = json.loads(value.replace("'", '"'))
@@ -35,7 +35,7 @@ class RedisPumper:
         if value[-1] == ",":
             value = value[:-1]
         value = json.loads(value)
-        self._pump_with_type(key, value[0], value[1])
+        self._pump_with_type(key, value['value'], value['type'])
 
     def pump_with_pattern(self, pattern):
         with open("dump.json") as dump_file:
