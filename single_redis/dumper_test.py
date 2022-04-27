@@ -1,9 +1,9 @@
 import unittest
 import os
 from unittest.mock import call, patch, MagicMock, Mock
-from single_redis.dumper import RedisDumper
+from single_redis.dumper import SingleRedisDumper as RedisDumper
 from mock.redis import MockRedis
-from sortedcontainers import SortedSet
+
 
 class MockPathExists(object):
     def __init__(self, return_value):
@@ -14,7 +14,7 @@ class MockPathExists(object):
         self.received_args = args
         return self.return_value
 
-class RedisDumperTest(unittest.TestCase):
+class SingleRedisDumperTest(unittest.TestCase):
     def setUp(self):
         self._orig_pathexists = os.path.exists
         os.path.exists = MockPathExists(True)

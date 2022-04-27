@@ -1,7 +1,10 @@
 import redis
 import json
 
-class RedisPumper:
+from abstract_redis import RedisPumper
+
+
+class SingleRedisPumper(RedisPumper):
     def __init__(self, uri):
         self.r = redis.Redis.from_url(uri, decode_responses=True)
     
@@ -9,20 +12,16 @@ class RedisPumper:
         self.r.set(key, value)
     
     def _pump_set(self, key, value):
-        value = json.loads(f"[{value[1:-1]}]".replace("'", '"'))
         self.r.sadd(key, *value)
     
     def _pump_list(self, key, value):
-        value = json.loads(value.replace("'", '"'))
         self.r.delete(key)
         self.r.rpush(key, *value)
 
     def _pump_hash(self, key, value):
-        value = json.loads(value.replace("'", '"'))
         self.r.hmset(key, value)
     
     def _pump_zset(self, key, value):
-        value = json.loads(value.replace("'", '"'))
         for idx in range(0, len(value), 2):
             self.r.zadd(key, {value[idx]: value[idx+1]})
 
@@ -42,6 +41,3 @@ class RedisPumper:
             for line in dump_file:
                 if line[0] not in "\{\}":
                     self._pump_line(line)
-
-    def pump_all(self):
-        pass

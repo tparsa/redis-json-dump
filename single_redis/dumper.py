@@ -1,8 +1,10 @@
 import redis
 import json
 
+from abstract_redis import RedisDumper
 
-class RedisDumper:
+
+class SingleRedisDumper(RedisDumper):
     VALID_TYPES = ('string', 'set', 'list', 'zset', 'hash', 'none')
 
     def __init__(self, uri):

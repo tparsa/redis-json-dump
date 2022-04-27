@@ -1,4 +1,4 @@
-from .dumper import RedisDumper
-from .pumper import RedisPumper
+from .dumper import SingleRedisDumper
+from .pumper import SingleRedisPumper
 
-__all__ = [RedisDumper, RedisPumper]
+__all__ = [SingleRedisDumper, SingleRedisPumper]
