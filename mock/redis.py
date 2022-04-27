@@ -56,7 +56,7 @@ class MockRedis:
             if "__type" in self.cache[key]:
                 return self.cache[key]["__type"]
             return "hash"
-        elif isinstance(self.cache[key], set) or isinstance(self.cache[key], SortedSet):
+        elif isinstance(self.cache[key], set):
             return "set"
         return "UnKnOwN"
 
