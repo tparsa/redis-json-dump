@@ -1,4 +1,4 @@
 from .dumper import RedisClusterDumper
-#from .pumper import SingleRedisPumper
+from .pumper import RedisClusterPumper
 
-__all__ = [RedisClusterDumper]
+__all__ = [RedisClusterDumper, RedisClusterPumper]
