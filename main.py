@@ -4,8 +4,8 @@ import argparse
 from io import StringIO
 from typing import List
 
-from lib.dumpers import JSONDumper
-from lib.io import RedisClusterIO, RedisSingleIO
+from redis.dumpers import JSONDumper
+from redis.io import RedisClusterIO, RedisSingleIO
 
 
 class CLI:
