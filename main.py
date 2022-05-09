@@ -13,7 +13,7 @@ class CLI:
         self._args = args
         self._uri = f"{self._get_redis_uri()}/{self._args.db}"
 
-    def _execute_signle_redis(self, f, mode):
+    def _execute_single_redis(self, f, mode):
         r = RedisSingleIO(self._uri)
         backup = JSONDumper(f)
         getattr(backup, mode)(r)
