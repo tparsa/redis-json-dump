@@ -1,7 +1,7 @@
 import unittest
 import os
 from unittest.mock import call, patch, MagicMock, Mock
-from lib.dumpers import SingleRedisDumper as RedisDumper
+from redis.dumpers import SingleRedisDumper as RedisDumper
 from mock.redis import MockRedis
 
 
