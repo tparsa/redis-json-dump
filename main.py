@@ -13,14 +13,14 @@ class CLI:
         self._args = args
         self._uri = f"{self._get_redis_uri()}/{self._args.db}"
 
-    def _execute_single_redis(self, f, mode):
+    def _execute_single_redis(self, f, mode, ttl):
         r = RedisSingleIO(self._uri)
-        backup = JSONDumper(f)
+        backup = JSONDumper(f, ttl)
         getattr(backup, mode)(r)
     
-    def _execute_cluster_redis(self, f, mode):
+    def _execute_cluster_redis(self, f, mode, ttl):
         r = RedisClusterIO(self._uri)
-        backup = JSONDumper(f)
+        backup = JSONDumper(f, ttl)
         getattr(backup, mode)(r)
 
     def execute(self):
@@ -41,7 +41,7 @@ class CLI:
             else:
                 raise Exception("In restore mode either set --input-stdin or give a file with --file")
         
-        getattr(self, f"_execute_{args.type}_redis")(f, args.mode)
+        getattr(self, f"_execute_{args.type}_redis")(f, args.mode, args.ttl)
 
     def _get_redis_uri(self):
         uri_env = os.getenv("uri", None)
@@ -61,6 +61,7 @@ if __name__ == "__main__":
     parser.add_argument('--mode', '-M', required=True, choices=['dump', 'restore'])
     parser.add_argument('--type', '-T', required=True, choices=['single', 'cluster'])
     parser.add_argument('--db', '-D', nargs='?', default=0)
+    parser.add_argument('--ttl', action='store_true')
 
     args = parser.parse_args()
 

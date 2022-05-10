@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import timedelta
 
 import redis
 
@@ -26,8 +27,8 @@ class BasicTypeHandler(RedisTypeHandler):
     def call_for(self, cli, key):
         self.__getter(cli, key)
 
-    def write(self, cli: redis.Redis, key: str, val: any):
-        self.__setter(cli, key, val)
+    def write(self, cli: redis.Redis, key: str, val: any, ttl: int):
+        self.__setter(cli, key, val, ttl)
 
     def process_result(self, val):
         return self.__processor(val)
@@ -35,23 +36,25 @@ class BasicTypeHandler(RedisTypeHandler):
 
 identity = lambda val: val
 StringHandler = BasicTypeHandler(
-    lambda cli, key: cli.get(key), lambda cli, key, val: cli.set(key, val), identity
+    lambda cli, key: cli.get(key),
+    lambda cli, key, val, ttl: cli.setex(key, timedelta(seconds=ttl), val) if ttl >= 0 else cli.set(key, val),
+    identity
 )
 SetHandler = BasicTypeHandler(
-    lambda cli, key: cli.smembers(key), lambda cli, key, val: cli.sadd(key, *val), list
+    lambda cli, key: cli.smembers(key), lambda cli, key, val, _: cli.sadd(key, *val), list
 )
 ListHandler = BasicTypeHandler(
     lambda cli, key: cli.lrange(key, 0, -1),
-    lambda cli, key, val: cli.lpush(key, *val),
+    lambda cli, key, val, _: cli.lpush(key, *val),
     identity,
 )
 HashHandler = BasicTypeHandler(
     lambda cli, key: cli.hgetall(key),
-    lambda cli, key, val: cli.hmset(key, val),
+    lambda cli, key, val, _: cli.hmset(key, val),
     identity,
 )
 ZSetHandler = BasicTypeHandler(
     lambda cli, key: cli.zrange(key, 0, -1, withscores=True),
-    lambda cli, key, val: cli.zadd(key, dict(val)),
+    lambda cli, key, val, _: cli.zadd(key, dict(val)),
     identity,
 )
