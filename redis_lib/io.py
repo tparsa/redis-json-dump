@@ -1,4 +1,5 @@
 from typing import Iterable, Tuple, List
+from base64 import b64decode, b64encode
 import redis
 import rediscluster
 
@@ -11,6 +12,30 @@ from .type_handlers import (
     ZSetHandler,
 )
 from .utils import to_batch
+
+
+def b64applier(x, func):
+    if isinstance(x, list):
+        return [func(i) for i in x]
+    if isinstance(x, dict):
+        return {func(k):func(v) for k, v in x.items()}
+    return func(x)
+
+
+def b64enc(x):
+    return b64applier(x, b64encode)
+
+
+def b64dec(x):
+    return b64applier(x, b64decode)
+
+
+def decode(x):
+    if isinstance(x, list) or isinstance(x, tuple):
+        return [i.decode('utf-8') for i in x]
+    if isinstance(x, dict):
+        return {k.decode('utf-8'):v.decode('utf-8') for k, v in x.items()}
+    return x.decode('utf-8')
 
 
 class RedisPatternIO(RedisIO):
@@ -32,7 +57,7 @@ class RedisPatternIO(RedisIO):
     def get_types(self, keys: List[str]) -> List[str]:
         for k in keys:
             self.pipe.type(k)
-        return self.pipe.execute()
+        return list(map(decode, self.pipe.execute()))
 
     def get_ttls(self, keys: List[str]) -> List[str]:
         for k in keys:
@@ -42,7 +67,7 @@ class RedisPatternIO(RedisIO):
     def get_values(self, types: List[str], keys: List[str]) -> List[any]:
         for _type, key in zip(types, keys):
             self.type_handlers[_type].call_for(self.pipe, key)
-        result = self.pipe.execute()
+        result = list(map(decode, map(b64enc, self.pipe.execute())))
         return [self.type_handlers[t].process_result(r) for t, r in zip(types, result)]
 
     def __iter__(self) -> Iterable[Tuple[str, str, any, int]]:
@@ -53,10 +78,10 @@ class RedisPatternIO(RedisIO):
         for batch in to_batch(keys, 10000):
             types = self.get_types(batch)
             ttls = self.get_ttls(batch)
-            yield from zip(types, batch, self.get_values(types, batch), ttls)
+            yield from zip(types, decode(batch), self.get_values(types, batch), ttls)
 
     def write(self, key: str, _type: str, val: any, ttl: int) -> None:
-        self.type_handlers[_type].write(self.pipe, key, val, ttl)
+        self.type_handlers[_type].write(self.pipe, key, b64dec(val), ttl)
         if len(self.pipe.command_stack) > 1000:
             self.pipe.execute()
 
@@ -67,7 +92,7 @@ class RedisPatternIO(RedisIO):
 
 class RedisSingleIO(RedisPatternIO):
     def __init__(self, uri: str, pattern: str = None):
-        cli = redis.Redis.from_url(uri, decode_responses=True)
+        cli = redis.Redis.from_url(uri, decode_responses=False)
         super().__init__(cli, pattern)
 
 
@@ -75,7 +100,7 @@ class RedisClusterIO(RedisPatternIO):
     def __init__(self, uri: str, pattern: str = None):
         class CustomConnection(redis.Connection):
             def __init__(self, *args, **kwargs):
-                kwargs["decode_responses"] = True
+                kwargs["decode_responses"] = False
                 super().__init__(*args, **kwargs)
 
         cli = rediscluster.RedisCluster.from_url(uri, connection_class=CustomConnection)
