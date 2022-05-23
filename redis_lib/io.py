@@ -7,6 +7,7 @@ from abstract_redis import RedisIO
 from .type_handlers import (
     HashHandler,
     ListHandler,
+    NoneHandler,
     SetHandler,
     StringHandler,
     ZSetHandler,
@@ -52,6 +53,7 @@ class RedisPatternIO(RedisIO):
             "list": ListHandler,
             "hash": HashHandler,
             "zset": ZSetHandler,
+            "none": NoneHandler,
         }
 
     def get_types(self, keys: List[str]) -> List[str]:

@@ -58,3 +58,8 @@ ZSetHandler = BasicTypeHandler(
     lambda cli, key, val, _: cli.zadd(key, dict(val)),
     identity,
 )
+NoneHandler = BasicTypeHandler(
+    lambda cli, key: '',
+    lambda cli, key, val, _: None,
+    identity,
+)
