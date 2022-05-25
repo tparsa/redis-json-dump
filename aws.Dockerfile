@@ -8,3 +8,5 @@ RUN pip install -r requirements.txt
 RUN pip install --no-cache-dir awscli
 
 COPY . .
+
+ENTRYPOINT ["python3", "s3-dumper.py"]
