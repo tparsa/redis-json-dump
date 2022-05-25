@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   pull_request:
 
 jobs:
@@ -27,6 +29,7 @@ jobs:
           images: tparsa/redis-backup
           tags: |
             type=raw,value={{sha}}
+            type=semver,pattern={{version}}
       
       - name: Build and push Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
@@ -55,6 +58,7 @@ jobs:
           images: tparsa/redis-backup-aws
           tags: |
             type=raw,value={{sha}}
+            type=semver,pattern={{version}}
       
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
