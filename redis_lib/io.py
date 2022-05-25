@@ -1,4 +1,4 @@
-from typing import Iterable, Tuple, List
+from typing import ByteString, Iterable, Tuple, List
 from base64 import b64decode, b64encode
 import redis
 import rediscluster
@@ -14,12 +14,15 @@ from .type_handlers import (
 )
 from .utils import to_batch
 
+is_number = lambda x: isinstance(x, int) or isinstance(x, float)
+is_iterable = lambda x: isinstance(x, Iterable) and not isinstance(x, ByteString) and not isinstance(x, str)
+
 
 def b64applier(x, func):
-    if isinstance(x, list) or isinstance(x, tuple):
-        return [([func(e) if not is_number(e) else e for e in i] if isinstance(i, list) or isinstance(i, tuple) else func(i)) for i in x]
     if isinstance(x, dict):
         return {func(k):func(v) for k, v in x.items()}
+    if is_iterable(x):
+        return [([func(e) if not is_number(e) else e for e in i] if is_iterable(i) else func(i)) for i in x]
     return func(x)
 
 
@@ -31,14 +34,11 @@ def b64dec(x):
     return b64applier(x, b64decode)
 
 
-is_number = lambda x: isinstance(x, int) or isinstance(x, float)
-
-
 def decode(x):
-    if isinstance(x, list) or isinstance(x, tuple):
-        return [[e.decode('utf-8') if not is_number(e) else e for e in i] if isinstance(i, list) or isinstance(i, tuple) else i.decode('utf-8') for i in x]
     if isinstance(x, dict):
         return {k.decode('utf-8'):v.decode('utf-8') for k, v in x.items()}
+    if is_iterable(x):
+        return [[e.decode('utf-8') if not is_number(e) else e for e in i] if is_iterable(i) else i.decode('utf-8') for i in x]
     return x.decode('utf-8')
 
 
