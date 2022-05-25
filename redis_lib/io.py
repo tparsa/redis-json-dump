@@ -16,8 +16,8 @@ from .utils import to_batch
 
 
 def b64applier(x, func):
-    if isinstance(x, list):
-        return [func(i) for i in x]
+    if isinstance(x, list) or isinstance(x, tuple):
+        return [([func(e) if not is_number(e) else e for e in i] if isinstance(i, list) or isinstance(i, tuple) else func(i)) for i in x]
     if isinstance(x, dict):
         return {func(k):func(v) for k, v in x.items()}
     return func(x)
@@ -31,9 +31,12 @@ def b64dec(x):
     return b64applier(x, b64decode)
 
 
+is_number = lambda x: isinstance(x, int) or isinstance(x, float)
+
+
 def decode(x):
     if isinstance(x, list) or isinstance(x, tuple):
-        return [i.decode('utf-8') for i in x]
+        return [[e.decode('utf-8') if not is_number(e) else e for e in i] if isinstance(i, list) or isinstance(i, tuple) else i.decode('utf-8') for i in x]
     if isinstance(x, dict):
         return {k.decode('utf-8'):v.decode('utf-8') for k, v in x.items()}
     return x.decode('utf-8')
