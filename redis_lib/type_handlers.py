@@ -45,7 +45,7 @@ SetHandler = BasicTypeHandler(
 )
 ListHandler = BasicTypeHandler(
     lambda cli, key: cli.lrange(key, 0, -1),
-    lambda cli, key, val, _: cli.lpush(key, *val),
+    lambda cli, key, val, _: cli.rpush(key, *val),
     identity,
 )
 HashHandler = BasicTypeHandler(
