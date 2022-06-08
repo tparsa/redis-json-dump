@@ -24,10 +24,17 @@ if __name__ == "__main__":
         command += " --ttl"
     dumper_process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     object_storage_address = f"s3://{args.bucket}/{args.name}"
+    gzip_process = subprocess.Popen(
+        f"gzip",
+        shell=True,
+        stdin=dumper_process.stdout,
+        stdout=subprocess.PIPE
+    )
     aws_process = subprocess.Popen(
         f"aws s3 cp - {object_storage_address} --endpoint-url {args.endpoint_url} --expected-size 109261619200",
         shell=True,
-        stdin=dumper_process.stdout
+        stdin=gzip_process.stdout
     )
     dumper_process.wait()
+    gzip_process.wait()
     aws_process.wait()
