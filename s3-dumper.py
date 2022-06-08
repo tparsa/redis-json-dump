@@ -1,4 +1,4 @@
-from re import sub
+import os
 import subprocess
 import argparse
 
@@ -15,7 +15,11 @@ if __name__ == "__main__":
     parser.add_argument('--name', required=True)
 
     args = parser.parse_args()
-    command = f"python3 main.py --uri {args.uri} --type {args.type} --db {args.db} --output-stdout --mode dump"
+    uri = args.uri if args.uri else os.getenv("REDIS_URI")
+    if not uri:
+        print("Must give --uri or set REDIS_URI env")
+        exit(1)
+    command = f"python3 main.py --uri {uri} --type {args.type} --db {args.db} --output-stdout --mode dump"
     if args.ttl:
         command += " --ttl"
     dumper_process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
