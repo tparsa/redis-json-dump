@@ -19,6 +19,8 @@ is_iterable = lambda x: isinstance(x, Iterable) and not isinstance(x, ByteString
 
 
 def b64applier(x, func):
+    if x is None:
+        return b64applier("", func)
     if isinstance(x, dict):
         return {func(k):func(v) for k, v in x.items()}
     if is_iterable(x):
