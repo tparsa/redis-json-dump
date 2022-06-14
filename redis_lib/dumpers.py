@@ -1,6 +1,7 @@
 from typing import IO
 import json
 import csv
+import progressbar
 
 from abstract_redis import DataDumper, RedisIO
 
@@ -11,12 +12,20 @@ class JSONDumper(DataDumper):
         self._preserve_ttls = preserve_ttls
 
     def dump(self, io: RedisIO):
+        total_keys = io.count_keys()
+        bar = progressbar.ProgressBar(maxval=total_keys, \
+            widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+        number_of_dumped_keys = 0
+        bar.start()
         for _type, key, val, ttl in io:
             obj = {"key": key, "type": _type, "value": val, "ttl": ttl}
             if not self._preserve_ttls:
                 del obj["ttl"]
             json.dump(obj, self.__file)
+            number_of_dumped_keys += 1
+            bar.update(number_of_dumped_keys)
             self.__file.write("\n")
+        bar.finish()
 
     def restore(self, io: RedisIO):
         for line in self.__file:
@@ -31,8 +40,16 @@ class CSVDumper(DataDumper):
 
     def dump(self, io: RedisIO):
         writer = csv.writer(self.__file)
+        total_keys = io.count_keys()
+        bar = progressbar.ProgressBar(maxval=total_keys, \
+            widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+        number_of_dumped_keys = 0
+        bar.start()
         for _type, key, val in io:
             writer.writerow([key, _type, val])
+            number_of_dumped_keys += 1
+            bar.update(number_of_dumped_keys)
+        bar.finish()
 
     def restore(self, io: RedisIO):
         reader = csv.reader(self.__file)

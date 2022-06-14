@@ -62,6 +62,10 @@ class RedisPatternIO(RedisIO):
             "zset": ZSetHandler,
             "none": NoneHandler,
         }
+    
+    def count_keys(self) -> int:
+        keys = self.cli.scan_iter("*", count=10000)
+        return sum(1 for i in keys)
 
     def get_types(self, keys: List[str]) -> List[str]:
         for k in keys:
