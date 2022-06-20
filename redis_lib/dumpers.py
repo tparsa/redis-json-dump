@@ -1,3 +1,4 @@
+import sys
 from typing import IO
 import json
 import csv
@@ -26,6 +27,7 @@ class JSONDumper(DataDumper):
             bar.update(number_of_dumped_keys)
             self.__file.write("\n")
         bar.finish()
+        print(f"Number of Dumped Keys: {number_of_dumped_keys}", file=sys.stderr)
 
     def restore(self, io: RedisIO):
         for line in self.__file:
