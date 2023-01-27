@@ -14,6 +14,7 @@ from .type_handlers import (
 )
 from .utils import to_batch
 
+
 is_number = lambda x: isinstance(x, int) or isinstance(x, float)
 is_iterable = lambda x: isinstance(x, Iterable) and not isinstance(x, ByteString) and not isinstance(x, str)
 
@@ -22,7 +23,7 @@ def b64applier(x, func):
     if isinstance(x, dict):
         return {func(k):func(v) for k, v in x.items()}
     if is_iterable(x):
-        return [([func(e) if not is_number(e) else e for e in i] if is_iterable(i) else func(i)) for i in x]
+        return [b64applier(i, func) for i in x]
     return func(x)
 
 
@@ -42,7 +43,7 @@ def decode(x):
     if isinstance(x, dict):
         return {k.decode('utf-8'):v.decode('utf-8') for k, v in x.items()}
     if is_iterable(x):
-        return [[e.decode('utf-8') if not is_number(e) else e for e in i] if is_iterable(i) else i.decode('utf-8') for i in x]
+        return [decode(i) for i in x]
     return x.decode('utf-8')
 
 
@@ -85,7 +86,7 @@ class RedisPatternIO(RedisIO):
 
     def __iter__(self) -> Iterable[Tuple[str, str, any, int]]:
         """
-        Iterable[(type, key, value)]
+        Iterable[(type, key, value, ttl)]
         """
         keys = self.cli.scan_iter("*", count=10000)
         for batch in to_batch(keys, 10000):
