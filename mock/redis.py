@@ -7,7 +7,10 @@ class MockRedis:
 
     def get(self, key):
         if key in self.cache:
-            return self.cache[key]
+            if isinstance(self.cache[key], str):
+                return self.cache[key]
+            else:
+                raise Exception("WRONGTYPE")
         return None  # return nil
 
     def set(self, key, value, *args, **kwargs):
@@ -29,8 +32,34 @@ class MockRedis:
 
     def smembers(self, key):
         if key in self.cache:
-            return self.cache[key]["value"]
+            if isinstance(self.cache[key], dict) and self.cache[key]["__type"] == "set":
+                return self.cache[key]["value"]
+            else:
+                raise Exception("WRONGTYPE")
         return None
+    
+    def sadd(self, key, val):
+        if not key in self.cache:
+            self.cache[key] = {"__type": "set", "value": []}
+        self.cache[key]["value"].append(val)
+        return "(integer) 1"
+    
+    def lrange(self, key, start, end):
+        if key in self.cache:
+            if isinstance(self.cache[key], list):
+                if end == -1:
+                    return self.cache[key][start:]
+                else:
+                    return self.cache[key][start:end]
+            else:
+                raise Exception("WRONGTYPE")
+        return None
+    
+    def rpush(self, key, val):
+        if not key in self.cache:
+            self.cache[key] = []
+        self.cache[key].append(val)
+        return "(integer) 1"
 
     def exists(self, key):
         if key in self.cache:
