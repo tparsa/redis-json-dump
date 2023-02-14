@@ -88,7 +88,7 @@ class RedisPatternIO(RedisIO):
         """
         Iterable[(type, key, value, ttl)]
         """
-        keys = self.cli.scan_iter("*", count=10000)
+        keys = self.cli.scan_iter(self.pattern, count=10000)
         for batch in to_batch(keys, 10000):
             types = self.get_types(batch)
             ttls = self.get_ttls(batch)
