@@ -14,16 +14,20 @@ from .type_handlers import (
 )
 from .utils import to_batch
 
+
 is_number = lambda x: isinstance(x, int) or isinstance(x, float)
 is_iterable = lambda x: isinstance(x, Iterable) and not isinstance(x, ByteString) and not isinstance(x, str)
 
 
 def b64applier(x, func):
     if isinstance(x, dict):
-        return {func(k):func(v) for k, v in x.items()}
+        return {b64applier(k, func):b64applier(v, func) for k, v in x.items()}
     if is_iterable(x):
-        return [([func(e) if not is_number(e) else e for e in i] if is_iterable(i) else func(i)) for i in x]
-    return func(x)
+        return [b64applier(i, func) for i in x]
+    if isinstance(x, bytes):
+        return func(x)
+    else:
+        return func(str(x).encode("utf-8"))
 
 
 def b64enc(x):
@@ -40,9 +44,9 @@ def b64dec(x):
 
 def decode(x):
     if isinstance(x, dict):
-        return {k.decode('utf-8'):v.decode('utf-8') for k, v in x.items()}
+        return {decode(k):decode(v) for k, v in x.items()}
     if is_iterable(x):
-        return [[e.decode('utf-8') if not is_number(e) else e for e in i] if is_iterable(i) else i.decode('utf-8') for i in x]
+        return [decode(i) for i in x]
     return x.decode('utf-8')
 
 
@@ -70,7 +74,8 @@ class RedisPatternIO(RedisIO):
     def get_types(self, keys: List[str]) -> List[str]:
         for k in keys:
             self.pipe.type(k)
-        return list(map(decode, self.pipe.execute()))
+        x = self.pipe.execute()
+        return list(map(decode, x))
 
     def get_ttls(self, keys: List[str]) -> List[str]:
         for k in keys:
@@ -80,21 +85,22 @@ class RedisPatternIO(RedisIO):
     def get_values(self, types: List[str], keys: List[str]) -> List[any]:
         for _type, key in zip(types, keys):
             self.type_handlers[_type].call_for(self.pipe, key)
-        result = list(map(decode, map(b64enc, self.pipe.execute())))
+        result = list(map(b64enc, map(decode, self.pipe.execute())))
         return [self.type_handlers[t].process_result(r) for t, r in zip(types, result)]
 
     def __iter__(self) -> Iterable[Tuple[str, str, any, int]]:
         """
-        Iterable[(type, key, value)]
+        Iterable[(type, key, value, ttl)]
         """
-        keys = self.cli.scan_iter("*", count=10000)
+        keys = self.cli.scan_iter(self.pattern, count=10000)
         for batch in to_batch(keys, 10000):
-            types = self.get_types(batch)
-            ttls = self.get_ttls(batch)
-            yield from zip(types, decode(batch), self.get_values(types, batch), ttls)
+            b = decode(batch)
+            types = self.get_types(b)
+            ttls = self.get_ttls(b)
+            yield from zip(types, b, self.get_values(types, b), ttls)
 
     def write(self, key: str, _type: str, val: any, ttl: int) -> None:
-        self.type_handlers[_type].write(self.pipe, key, b64dec(val), ttl)
+        self.type_handlers[_type].write(self.pipe, key, decode(b64dec(val)), ttl)
         if len(self.pipe.command_stack) > 1000:
             self.pipe.execute()
 
