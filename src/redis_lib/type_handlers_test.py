@@ -2,8 +2,8 @@ import unittest
 from unittest.mock import call, patch, MagicMock, Mock
 import redis
 
-from mock.redis import MockRedis
-from redis_lib.type_handlers import (
+from src.mock.redis import MockRedis
+from src.redis_lib.type_handlers import (
     RedisTypeHandler,
     StringHandler,
     SetHandler,

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from .io import *
-from mock.redis import MockRedis
+from src.mock.redis import MockRedis
 
 
 class UtilsTest(unittest.TestCase):

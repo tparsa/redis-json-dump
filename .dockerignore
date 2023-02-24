@@ -1,0 +1,7 @@
+venv/
+dump*
+*Dockerfile
+*.yml
+.github/
+htmlcov/
+__pycache__/

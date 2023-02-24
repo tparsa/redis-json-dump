@@ -4,7 +4,7 @@ import json
 import csv
 import progressbar
 
-from abstract_redis import DataDumper, RedisIO
+from src.abstract_redis import DataDumper, RedisIO
 
 
 class JSONDumper(DataDumper):

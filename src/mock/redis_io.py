@@ -1,7 +1,7 @@
 from typing import Iterable, Tuple
 import json
 
-from abstract_redis import RedisIO
+from src.abstract_redis import RedisIO
 
 
 class RedisIOMock(RedisIO):

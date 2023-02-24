@@ -1,7 +1,7 @@
 import re
 from datetime import timedelta
 
-from redis_lib.io import is_iterable
+from src.redis_lib.io import is_iterable
 
 
 class MockRedis:

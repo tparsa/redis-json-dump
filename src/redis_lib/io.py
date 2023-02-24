@@ -3,7 +3,7 @@ from base64 import b64decode, b64encode
 import redis
 import rediscluster
 
-from abstract_redis import RedisIO
+from src.abstract_redis import RedisIO
 from .type_handlers import (
     HashHandler,
     ListHandler,
@@ -47,7 +47,10 @@ def decode(x):
         return {decode(k):decode(v) for k, v in x.items()}
     if is_iterable(x):
         return [decode(i) for i in x]
-    return x.decode('utf-8')
+    if isinstance(x, bytes):
+        return x.decode('utf-8')
+    else:
+        return x
 
 
 class RedisPatternIO(RedisIO):
@@ -85,7 +88,7 @@ class RedisPatternIO(RedisIO):
     def get_values(self, types: List[str], keys: List[str]) -> List[any]:
         for _type, key in zip(types, keys):
             self.type_handlers[_type].call_for(self.pipe, key)
-        result = list(map(b64enc, map(decode, self.pipe.execute())))
+        result = list(map(decode, map(b64enc, map(decode, self.pipe.execute()))))
         return [self.type_handlers[t].process_result(r) for t, r in zip(types, result)]
 
     def __iter__(self) -> Iterable[Tuple[str, str, any, int]]:
@@ -100,6 +103,7 @@ class RedisPatternIO(RedisIO):
             yield from zip(types, b, self.get_values(types, b), ttls)
 
     def write(self, key: str, _type: str, val: any, ttl: int) -> None:
+        self.cli.delete(key)
         self.type_handlers[_type].write(self.pipe, key, decode(b64dec(val)), ttl)
         if len(self.pipe.command_stack) > 1000:
             self.pipe.execute()

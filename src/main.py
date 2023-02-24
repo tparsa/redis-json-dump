@@ -1,11 +1,9 @@
 import sys
 import os
 import argparse
-from io import StringIO
-from typing import List
 
-from redis_lib.dumpers import JSONDumper
-from redis_lib.io import RedisClusterIO, RedisSingleIO
+from src.redis_lib.dumpers import JSONDumper
+from src.redis_lib.io import RedisClusterIO, RedisSingleIO
 
 
 class CLI:
@@ -24,6 +22,7 @@ class CLI:
         getattr(backup, mode)(r)
 
     def execute(self):
+        args = self._args
         mode = args.mode
         f = None
         if mode == 'dump':

@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  redis_source:
+    image: docker.yektanet.tech/redis:6-alpine
+    entrypoint: redis-server
+    command: --save ""
+  redis_dest:
+    image: docker.yektanet.tech/redis:6-alpine
+    entrypoint: redis-server
+    command: --save ""
+  integration_test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: -m src.integration_test 10
+    entrypoint: python
+    depends_on:
+      - redis_source
+      - redis_dest

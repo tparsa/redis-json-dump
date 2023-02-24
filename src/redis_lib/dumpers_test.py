@@ -2,8 +2,8 @@ import unittest
 from io import StringIO
 
 from .dumpers import JSONDumper, CSVDumper
-from mock.file import FileMock
-from mock.redis_io import RedisIOMock
+from src.mock.file import FileMock
+from src.mock.redis_io import RedisIOMock
 
 
 class JSONDumperTest(unittest.TestCase):

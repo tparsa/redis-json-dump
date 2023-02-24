@@ -63,11 +63,16 @@ HashHandler = BasicTypeHandler(
     identity,
 )
 
+def convert_zrange_to_dict(zrange):
+    ret = {}
+    for item in zrange:
+        ret[item[0]] = item[1]
+    return ret
 
 ZSetHandler = BasicTypeHandler(
     lambda cli, key: cli.zrange(key, 0, -1, withscores=True),
     lambda cli, key, val, _: cli.zadd(key, dict(val)),
-    identity,
+    convert_zrange_to_dict,
 )
 
 
