@@ -8,16 +8,15 @@ import redis
 class RedisTypeHandler(ABC):
     @abstractmethod
     def call_for(self, cli: redis.Redis, key: str):
-        ...
+        raise NotImplementedError()
 
     @abstractmethod
     def write(self, cli: redis.Redis, key: str, val: any):
-        ...
+        raise NotImplementedError()
 
     @abstractmethod
     def process_result(self, val):
-        ...
-
+        raise NotImplementedError
 
 class BasicTypeHandler(RedisTypeHandler):
     def __init__(self, getter, setter, processor) -> None:

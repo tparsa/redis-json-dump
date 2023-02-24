@@ -4,6 +4,7 @@ import redis
 
 from mock.redis import MockRedis
 from redis_lib.type_handlers import (
+    RedisTypeHandler,
     StringHandler,
     SetHandler,
     ListHandler,
@@ -134,7 +135,7 @@ class SetHandlerTest(unittest.TestCase):
         self.assertEqual(SetHandler.process_result(value), None)
 
     @patch("redis.Redis")
-    def test_call_for_for_non_string_type(self, mock_redis):
+    def test_call_for_for_non_set_type(self, mock_redis):
         mock_redis.return_value = self.mock_redis_method
         cli = redis.Redis(host="localhost")
         with self.assertRaises(Exception):
@@ -199,8 +200,74 @@ class ListHandlerTest(unittest.TestCase):
         self.assertEqual(ListHandler.process_result(value), None)
 
     @patch("redis.Redis")
-    def test_call_for_for_non_string_type(self, mock_redis):
+    def test_call_for_for_non_list_type(self, mock_redis):
         mock_redis.return_value = self.mock_redis_method
         cli = redis.Redis(host="localhost")
         with self.assertRaises(Exception):
             ListHandler.call_for(cli, "foo2")
+
+
+class HashHandlerTest(unittest.TestCase):
+    def setUp(self):
+        redis_cache = {
+            "foo": ["bar"],
+            "foo2": "bar",
+            "foo3": {"__type": "hash", "value": {"bar1": "bar", "bar2": "abr"}}
+        }
+
+        self.mock_redis_obj = MockRedis(redis_cache)
+
+        self.mock_redis_method = MagicMock()
+        self.mock_redis_method.hgetall = Mock(side_effect=self.mock_redis_obj.hgetall)
+        self.mock_redis_method.hmset = Mock(side_effect=self.mock_redis_obj.hmset)
+    
+    @patch("redis.Redis")
+    def test_call_for_key_exists(self, mock_redis):
+        mock_redis.return_value = self.mock_redis_method
+        cli = redis.Redis(host="localhost")
+        self.assertEqual(HashHandler.call_for(cli, "foo3"), {"bar1": "bar", "bar2": "abr"})
+
+    @patch("redis.Redis")
+    def test_call_for_non_existing_key(self, mock_redis):
+        mock_redis.return_value = self.mock_redis_method
+        cli = redis.Redis(host="localhost")
+        self.assertEqual(HashHandler.call_for(cli, "bar"), None)
+
+    @patch("redis.Redis")
+    def test_write_for_non_existing_key(self, mock_redis):
+        mock_redis.return_value = self.mock_redis_method
+        cli = redis.Redis(host="localhost")
+        HashHandler.write(cli, "bar", {"foo": "bar"}, -1)
+        self.assertEqual(HashHandler.call_for(cli, "bar"), {"foo": "bar"})
+
+    @patch("redis.Redis")
+    def test_write_for_existing_key(self, mock_redis):
+        mock_redis.return_value = self.mock_redis_method
+        cli = redis.Redis(host="localhost")
+        HashHandler.write(cli, "foo3", {"bar3": "test"}, -1)
+        return_value = HashHandler.call_for(cli, "foo3")
+        expected_value = {"bar1": "bar", "bar2": "abr", "bar3": "test"}
+        self.assertEqual(return_value, expected_value)
+    
+    @patch("redis.Redis")
+    def test_processor_for_existing_key(self, mock_redis):
+        mock_redis.return_value = self.mock_redis_method
+        cli = redis.Redis(host="localhost")
+        call_for_value = HashHandler.call_for(cli, "foo3")
+        processed_result_value = HashHandler.process_result(call_for_value)
+        expected_value = {"bar1": "bar", "bar2": "abr"}
+        self.assertEqual(processed_result_value, expected_value)
+    
+    @patch("redis.Redis")
+    def test_processor_for_non_existing_key(self, mock_redis):
+        mock_redis.return_value = self.mock_redis_method
+        cli = redis.Redis(host="localhost")
+        value = HashHandler.call_for(cli, "bar")
+        self.assertEqual(HashHandler.process_result(value), None)
+
+    @patch("redis.Redis")
+    def test_call_for_for_non_hash_type(self, mock_redis):
+        mock_redis.return_value = self.mock_redis_method
+        cli = redis.Redis(host="localhost")
+        with self.assertRaises(Exception):
+            HashHandler.call_for(cli, "foo2")
