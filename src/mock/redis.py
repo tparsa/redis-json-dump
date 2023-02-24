@@ -2,7 +2,7 @@ import re
 from datetime import timedelta
 
 from src.redis_lib.io import is_iterable
-
+from .args import ArgsMock
 
 class MockRedis:
     def __init__(self, cache=dict(), ttls=dict()):
@@ -13,6 +13,20 @@ class MockRedis:
         self.__non_decoded_queries = {}
         self.ttls = ttls
         self.command_stack = [0] * 1001
+
+    def get_nodes(self):
+        node = ArgsMock()
+        node.add("redis_connection", self)
+        return [node]
+
+    def delete(self, key):
+        val = 0
+        if key in self.cache:
+            del self.cache[key]
+            val = 1
+        # self.__return_values.append(val)
+        # self.__non_decoded_queries[len(self.__return_values)-1] = True
+        return val
 
     def get(self, key):
         if key in self.cache:
@@ -230,7 +244,7 @@ class MockRedis:
     def cache_overwrite(self, cache=dict()):
         self.cache = cache
 
-    def pipeline(self):
+    def pipeline(self, transaction=False):
         self.__pipeline_enabled = True
         self.__return_values = []
         self.__exceptions = []

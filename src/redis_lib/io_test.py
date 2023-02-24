@@ -86,6 +86,9 @@ class UtilsTest(unittest.TestCase):
     def test_b64dec_float(self):
         self.assertEqual(float(decode(b64dec(self.encoded_float))), self.float)
     
+    def test_decode_int(self):
+        self.assertEqual(decode(self.int), self.int)
+
     def test_b64dec_list(self):
         self.assertEqual(decode(b64dec(self.encoded_list)), self.list)
     
@@ -114,7 +117,7 @@ class RedisPatterIOTest(unittest.TestCase):
             "list": {"__type": "list", "value": ["1", "2", "3"]},
             "set": {"__type": "set", "value": ["1", "2", "3"]},
             "string": "test",
-            "zset": {"__type": "zset", "value": ["1", "1", "10", "2", "3", "3"]}
+            "zset": {"__type": "zset", "value": [("1", "1"), ("10", "2"), ("3", "3")]}
         }
         self._redis_ttls = {
             "hash": 10,
@@ -159,7 +162,7 @@ class RedisPatterIOTest(unittest.TestCase):
             ["1", "2", "3"],
             ["1", "2", "3"],
             "test",
-            ["1", "1", "10", "2", "3", "3"]
+            {"1": "1", "10": "2", "3": "3"}
         ]
         self.assertEqual(returned_value, expected_value)
     
@@ -170,7 +173,7 @@ class RedisPatterIOTest(unittest.TestCase):
             ("list", "list", ["1", "2", "3"], 20),
             ("set", "set", ["1", "2", "3"], 1),
             ("string", "string", "test", -1),
-            ("zset", "zset", ["1", "1", "10", "2", "3", "3"], -1)
+            ("zset", "zset", {"1": "1", "10": "2", "3": "3"}, -1)
         ]
         for type, key, val, ttl in self._redis_pattern_io:
             returned_value = (type, key, decode(b64dec(val)), ttl)
@@ -207,19 +210,26 @@ class RedisPatterIOTest(unittest.TestCase):
             self._redis_pattern_io.flush()
 
 
-class RedisSingleIOTest(unittest.TestCase):
+class RedisSingleIOTest(RedisPatterIOTest):
     def setUp(self) -> None:
-        self.mock_redis_obj = MockRedis({})
-    
+        super().setUp()
+        self._redis_pattern_io = RedisSingleIO(
+            cli=MockRedis(self._redis_data, self._redis_ttls)
+        )
+
     @patch("redis.Redis.from_url")
     def test_init(self, mock_redis):
         RedisSingleIO("", "")
 
 
-class RedisClusterIOTest(unittest.TestCase):
+class RedisClusterIOTest(RedisPatterIOTest):
     def setUp(self) -> None:
-        self.mock_rediscluster_obj = MockRedis({})
-    
-    @patch("rediscluster.RedisCluster.from_url")
-    def test_init(self, mock_redis):
-        RedisClusterIO("", "")
+        super().setUp()
+        self._redis_pattern_io = RedisClusterIO(
+            cli=MockRedis(self._redis_data, self._redis_ttls)
+        )
+
+    def test_init(self):
+        RedisClusterIO(
+            cli=MockRedis(self._redis_data, self._redis_ttls)
+        )

@@ -1,7 +1,6 @@
 from typing import ByteString, Iterable, Tuple, List
 from base64 import b64decode, b64encode
 import redis
-import rediscluster
 
 from src.abstract_redis import RedisIO
 from .type_handlers import (
@@ -60,7 +59,7 @@ class RedisPatternIO(RedisIO):
 
         self.pattern = pattern
         self.cli = cli
-        self.pipe = self.cli.pipeline()
+        self.pipe = self.cli.pipeline(transaction=False)
         self.type_handlers = {
             "string": StringHandler,
             "set": SetHandler,
@@ -114,17 +113,52 @@ class RedisPatternIO(RedisIO):
 
 
 class RedisSingleIO(RedisPatternIO):
-    def __init__(self, uri: str, pattern: str = None):
-        cli = redis.Redis.from_url(uri, decode_responses=False)
-        super().__init__(cli, pattern)
+    def __init__(self, uri: str = None, pattern: str = None, cli: redis.Redis = None):
+        _cli = cli
+        if _cli is None:
+            _cli = redis.Redis.from_url(uri, decode_responses=False)
+        super().__init__(_cli, pattern)
 
 
 class RedisClusterIO(RedisPatternIO):
-    def __init__(self, uri: str, pattern: str = None):
+    def __init__(self, uri: str = None, pattern: str = None, cli: redis.cluster.RedisCluster = None):
         class CustomConnection(redis.Connection):
             def __init__(self, *args, **kwargs):
                 kwargs["decode_responses"] = False
                 super().__init__(*args, **kwargs)
+        if cli is None:
+            initiator_cli = redis.cluster.RedisCluster.from_url(uri, connection_class=CustomConnection)
+        else:
+            initiator_cli = cli
+        clis = [node.redis_connection for node in initiator_cli.get_nodes()]
+        self._ios = [RedisPatternIO(cli, pattern) for cli in clis]
+        self.cli = self._ios[0].cli
+        self.pipe = self._ios[0].pipe
+        self._write_io = RedisPatternIO(initiator_cli)
 
-        cli = rediscluster.RedisCluster.from_url(uri, connection_class=CustomConnection)
-        super().__init__(cli, pattern)
+    def count_keys(self) -> int:
+        ret = 0
+        for io in self._ios:
+            ret += io.count_keys()
+        return ret
+
+    def get_types(self, keys: List[str]) -> List[str]:
+        return self._ios[0].get_types(keys)
+
+    def get_ttls(self, keys: List[str]) -> List[str]:
+        return self._ios[0].get_ttls(keys)
+
+    def get_values(self, types: List[str], keys: List[str]) -> List[any]:
+        return self._ios[0].get_values(types, keys)
+
+    def __iter__(self) -> Iterable[Tuple[str, str, any, int]]:
+        for io in self._ios:
+            for item in io:
+                yield item
+
+    def write(self, key: str, _type: str, val: any, ttl: int) -> None:
+        self._write_io.write(key, _type, val, ttl)
+
+    def flush(self) -> None:
+        for io in self._ios:
+            io.flush()

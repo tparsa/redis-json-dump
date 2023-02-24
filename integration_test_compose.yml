@@ -4,10 +4,97 @@ services:
     image: docker.yektanet.tech/redis:6-alpine
     entrypoint: redis-server
     command: --save ""
+    networks:
+      net:
+        ipv4_address: 173.18.2.1
   redis_dest:
     image: docker.yektanet.tech/redis:6-alpine
     entrypoint: redis-server
     command: --save ""
+    networks:
+      net:
+        ipv4_address: 173.18.2.2
+
+  redis_cluster_source_1:
+    image: docker.yektanet.tech/redis:6-alpine
+    entrypoint: redis-server
+    command: /usr/local/etc/redis/redis.conf
+    volumes:
+      - ./redis_cluster.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      net:
+        ipv4_address: 173.18.0.2
+  redis_cluster_source_2:
+    image: docker.yektanet.tech/redis:6-alpine
+    entrypoint: redis-server
+    command: /usr/local/etc/redis/redis.conf
+    volumes:
+      - ./redis_cluster.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      net:
+        ipv4_address: 173.18.0.3
+  redis_cluster_source_3:
+    image: docker.yektanet.tech/redis:6-alpine
+    entrypoint: redis-server
+    command: /usr/local/etc/redis/redis.conf
+    volumes:
+      - ./redis_cluster.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      net:
+        ipv4_address: 173.18.0.4
+
+  redis_cluster_dest_1:
+    image: docker.yektanet.tech/redis:6-alpine
+    entrypoint: redis-server
+    command: /usr/local/etc/redis/redis.conf
+    volumes:
+      - ./redis_cluster.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      net:
+        ipv4_address: 173.18.0.5
+  redis_cluster_dest_2:
+    image: docker.yektanet.tech/redis:6-alpine
+    entrypoint: redis-server
+    command: /usr/local/etc/redis/redis.conf
+    volumes:
+      - ./redis_cluster.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      net:
+        ipv4_address: 173.18.0.6
+  redis_cluster_dest_3:
+    image: docker.yektanet.tech/redis:6-alpine
+    entrypoint: redis-server
+    command: /usr/local/etc/redis/redis.conf
+    volumes:
+      - ./redis_cluster.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      net:
+        ipv4_address: 173.18.0.7
+
+  redis_cluster_source_initiator:
+    image: docker.yektanet.tech/redis:6-alpine
+    entrypoint: ""
+    command: /usr/local/bin/redis-cli -h 173.18.0.2 --cluster create 173.18.0.2:6379 173.18.0.3:6379 173.18.0.4:6379 --cluster-replicas 0 --cluster-yes && sleep 1000
+    depends_on:
+      - redis_cluster_source_1
+      - redis_cluster_source_2
+      - redis_cluster_source_3
+    networks:
+      net:
+        ipv4_address: 173.18.0.8
+
+  redis_cluster_dest_initiator:
+    image: docker.yektanet.tech/redis:6-alpine
+    entrypoint: ""
+    command: /usr/local/bin/redis-cli -h 173.18.0.5 --cluster create 173.18.0.5:6379 173.18.0.6:6379 173.18.0.7:6379 --cluster-replicas 0 --cluster-yes && sleep 1000
+    depends_on:
+      - redis_cluster_dest_1
+      - redis_cluster_dest_2
+      - redis_cluster_dest_3
+    networks:
+      net:
+        ipv4_address: 173.18.0.9
+
   integration_test:
     build:
       context: .
@@ -17,3 +104,25 @@ services:
     depends_on:
       - redis_source
       - redis_dest
+
+      - redis_cluster_source_1
+      - redis_cluster_source_2
+      - redis_cluster_source_3
+
+      - redis_cluster_dest_1
+      - redis_cluster_dest_2
+      - redis_cluster_dest_3
+
+      - redis_cluster_source_initiator
+      - redis_cluster_dest_initiator
+    networks:
+      net:
+        ipv4_address: 173.18.1.1
+
+networks:
+  net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 173.18.0.0/16
