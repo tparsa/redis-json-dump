@@ -14,6 +14,13 @@ services:
     networks:
       net:
         ipv4_address: 173.18.2.2
+  redis_dest_s3:
+    image: docker.yektanet.tech/redis:6-alpine
+    entrypoint: redis-server
+    command: --save ""
+    networks:
+      net:
+        ipv4_address: 173.18.2.3
 
   redis_cluster_source_1:
     image: docker.yektanet.tech/redis:6-alpine
@@ -94,16 +101,29 @@ services:
     networks:
       net:
         ipv4_address: 173.18.0.9
+  
+  minio:
+    image: docker.yektanet.tech/minio/minio:RELEASE.2023-02-22T18-23-45Z.fips
+    environment:
+    - MINIO_ACCESS_KEY=access
+    - MINIO_SECRET_KEY=secretsecret
+    command: server /data
+    networks:
+      net:
+        ipv4_address: 173.18.3.2
 
   integration_test:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: test.Dockerfile
     command: -m src.integration_test 10
-    entrypoint: python
+    environment:
+    - AWS_ACCESS_KEY_ID=access
+    - AWS_SECRET_ACCESS_KEY=secretsecret
     depends_on:
       - redis_source
       - redis_dest
+      - redis_dest_s3
 
       - redis_cluster_source_1
       - redis_cluster_source_2
@@ -115,9 +135,32 @@ services:
 
       - redis_cluster_source_initiator
       - redis_cluster_dest_initiator
+
+      - minio
     networks:
       net:
         ipv4_address: 173.18.1.1
+  
+  performance_test:
+    build:
+      context: .
+      dockerfile: test.Dockerfile
+    command: -m src.performance_test
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - redis_source
+      - redis_dest
+
+  shell:
+    build:
+      context: .
+      dockerfile: aws.Dockerfile
+    command: "3600"
+    entrypoint: sleep
+    networks:
+      net:
+        ipv4_address: 173.18.1.2
 
 networks:
   net:
