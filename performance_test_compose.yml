@@ -1,0 +1,50 @@
+version: "3.9"
+services:
+  redis_source:
+    image: docker.yektanet.tech/redis:6-alpine
+    entrypoint: redis-server
+    command: --save ""
+    networks:
+      net:
+        ipv4_address: 173.18.2.1
+  redis_dest:
+    image: docker.yektanet.tech/redis:6-alpine
+    entrypoint: redis-server
+    command: --save ""
+    networks:
+      net:
+        ipv4_address: 173.18.2.2
+
+  performance_test:
+    build:
+      context: .
+      dockerfile: test.Dockerfile
+    command: -m src.performance_test
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - redis_source
+      - redis_dest
+    networks:
+      net:
+        ipv4_address: 173.18.1.1
+
+  shell:
+    build:
+      context: .
+      dockerfile: test.Dockerfile
+    command: "3600"
+    entrypoint: sleep
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      net:
+        ipv4_address: 173.18.1.2
+
+networks:
+  net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 173.18.0.0/16
