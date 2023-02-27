@@ -9,4 +9,4 @@ RUN pip install --no-cache-dir awscli
 
 COPY . .
 
-ENTRYPOINT ["python3", "src/s3_dumper.py"]
+ENTRYPOINT ["python3", "-m", "src.s3_dumper"]
